@@ -10,7 +10,7 @@
     <div v-else-if="pageData" class="detail-content">
       <!-- 顶部信息栏 -->
       <header class="page-header">
-        <h1>{{ pageData.department_info.name }} - 部门分析报告</h1>
+        <h1>{{ pageData.department_info.name }} - 部门详细</h1>
         <div class="page-controls">
           <section class="filters">
               <label for="start-month">时间范围:</label>

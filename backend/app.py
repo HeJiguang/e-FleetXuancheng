@@ -1216,6 +1216,63 @@ def get_department_detail(department_id):
         return jsonify(error=f"An unexpected error occurred: {e}"), 500
 
 
+@app.route('/api/search', methods=['GET'])
+def search():
+    """
+    API 端点，用于全局搜索部门和车辆。
+    接收一个查询参数 'q'。
+    """
+    query = request.args.get('q', '').strip()
+
+    if not query:
+        return jsonify([])
+
+    try:
+        conn = get_db_connection()
+
+        # 搜索部门 (限制5条结果)
+        departments_query = """
+            SELECT department_id, name
+            FROM departments
+            WHERE name LIKE ?
+            LIMIT 5
+        """
+        departments = conn.execute(departments_query, (f'%{query}%',)).fetchall()
+
+        # 搜索车辆 (限制5条结果)
+        vehicles_query = """
+            SELECT plate_number
+            FROM vehicles
+            WHERE plate_number LIKE ?
+            LIMIT 5
+        """
+        vehicles = conn.execute(vehicles_query, (f'%{query}%',)).fetchall()
+
+        conn.close()
+
+        # 格式化并合并结果
+        results = []
+        for dept in departments:
+            results.append({
+                'type': 'department',
+                'id': dept['department_id'],
+                'name': dept['name']
+            })
+        for vehicle in vehicles:
+            results.append({
+                'type': 'vehicle',
+                'id': vehicle['plate_number'],
+                'name': vehicle['plate_number']
+            })
+
+        return jsonify(results)
+
+    except sqlite3.Error as e:
+        return jsonify({"error": f"数据库错误: {e}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"发生意外错误: {e}"}), 500
+
+
 # --- 主程序入口 ---
 if __name__ == '__main__':
     # 启动 Flask 开发服务器
