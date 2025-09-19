@@ -8,8 +8,8 @@ import os
 
 # --- Configuration ---
 # Build paths relative to this script file
-SCRIPT_DIR = os.path.dirname(__file__)
-DB_FILE = os.path.join(SCRIPT_DIR, 'vehicle_data_optimized.db')
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(SCRIPT_DIR, '..', 'backend', 'data', 'vehicle_data_optimized.db')
 DATA_DIR = os.path.join(SCRIPT_DIR, '..', 'temp/')
 
 

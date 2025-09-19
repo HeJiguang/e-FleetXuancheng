@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<!-- lang="zh-CN" 有助于浏览器和搜索引擎更好地理解页面语言 -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车辆管理系统</title>
+    <!-- 引入我们自己的 CSS 样式文件 -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    
+    <!-- 这是我们 Vue 应用的根容器 -->
+    <div id="app" class="app-container">
+        
+        <!-- 顶部导航栏 -->
+        <header class="top-nav">
+            <h1>{{ pageTitle }}</h1>
+            <nav>
+                <a href="#" 
+                   :class="{ active: currentView === 'overview' }" 
+                   @click.prevent="navigateTo('overview')">
+                   整体概览
+                </a>
+                <a href="#" 
+                   :class="{ active: currentView === 'department' }" 
+                   @click.prevent="navigateTo('department')">
+                   部门总览
+                </a>
+            </nav>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 视图容器: 整体概览 -->
+            <div v-if="currentView === 'overview'" key="overview">
+                <div v-if="isLoading" class="loading-container">
+                    <div class="spinner"></div>
+                    <p>正在加载概览数据...</p>
+                </div>
+                <div v-else-if="error" class="error-container">
+                    <p>{{ error }}</p>
+                </div>
+                <div v-else class="overview-container">
+                    
+                    <!-- KPI 卡片区域 -->
+                    <section class="kpi-cards">
+                        <div class="card">
+                            <h2>车辆总数</h2>
+                            <p>{{ summary.kpi.total_vehicles }}</p>
+                        </div>
+                        <div class="card">
+                            <h2>部门总数</h2>
+                            <p>{{ summary.kpi.total_departments }}</p>
+                        </div>
+                    </section>
+
+                    <!-- 四大管理视图标签页 -->
+                    <section class="management-views">
+                        <div class="tabs">
+                            <button 
+                                v-for="tab in tabs" 
+                                :key="tab.id"
+                                :class="{ active: activeTab === tab.id }"
+                                @click="changeTab(tab.id)">
+                                {{ tab.name }}
+                            </button>
+                        </div>
+
+                        <!-- (修改) 将筛选器移动到图表容器内部，以便进行定位 -->
+                        <section class="filters">
+                            <label for="start-month">时间范围:</label>
+                            <input type="month" id="start-month" v-model="filters.startMonth">
+                            <span class="date-separator">至</span>
+                            <input type="month" id="end-month" v-model="filters.endMonth">
+                            <button @click="applyFilters" :disabled="!isFilterValid" class="filter-button">查询</button>
+                        </section>
+
+                        <div class="tab-content">
+                            <!-- 里程管理 -->
+                            <div v-if="activeTab === 'mileage'">
+                                <h2>月度总里程趋势 (公里)</h2>
+                                <div class="chart-container">
+                                    <canvas id="mileageTrendChart"></canvas>
+                                </div>
+                            </div>
+                            <!-- 油耗管理 -->
+                            <div v-if="activeTab === 'fuel'">
+                                <h2>月度总油耗趋势 (升)</h2>
+                                 <div class="chart-container">
+                                    <canvas id="fuelTrendChart"></canvas>
+                                </div>
+                            </div>
+                            <!-- 违章管理 -->
+                            <div v-if="activeTab === 'violations'">
+                                <h2>月度违章次数趋势</h2>
+                                 <div class="chart-container">
+                                    <canvas id="violationTrendChart"></canvas>
+                                </div>
+                            </div>
+                            <!-- 维保管理 -->
+                            <div v-if="activeTab === 'maintenance'">
+                                <h2>月度维保费用趋势 (元)</h2>
+                                 <div class="chart-container">
+                                    <canvas id="maintenanceTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- (已移除) "各部门车辆数分布" 图表 -->
+                </div>
+            </div>
+
+            <!-- 视图容器: 部门总览 -->
+            <div v-if="currentView === 'department'" key="department" class="department-view">
+                <!-- 加载状态 -->
+                <div v-if="departmentView.isLoading" class="loading-container">
+                    <div class="spinner"></div>
+                    <p>正在加载部门数据...</p>
+                </div>
+                <!-- 错误状态 -->
+                <div v-else-if="departmentView.error" class="error-container">
+                    <p>{{ departmentView.error }}</p>
+                </div>
+                <!-- 内容区域 -->
+                <div v-else>
+                    <!-- (新增) 部门视图的标签页导航 -->
+                    <div class="tabs">
+                        <button
+                            v-for="tab in tabs"
+                            :key="tab.id"
+                            :class="{ active: departmentView.activeTab === tab.id }"
+                            @click="changeDepartmentTab(tab.id)">
+                            {{ tab.name }}
+                        </button>
+                    </div>
+
+                    <!-- (新增) 图表与排名容器 -->
+                    <div class="department-content-grid">
+                        <!-- 图表区 -->
+                        <section class="chart-container">
+                            <div v-for="tab in tabs" :key="tab.id">
+                                <canvas v-show="departmentView.activeTab === tab.id" :id="'department' + tab.id.charAt(0).toUpperCase() + tab.id.slice(1) + 'Chart'"></canvas>
+                            </div>
+                        </section>
+                        <!-- 排名区 -->
+                        <section class="ranking-list">
+                            <div v-for="tab in tabs" :key="tab.id" v-show="departmentView.activeTab === tab.id">
+                                <h3>{{ tab.name }}排名</h3>
+                                <ul>
+                                    <li v-for="(dept, index) in departmentRankings[tab.id]" :key="dept.department_id">
+                                        <span class="rank-index">{{ index + 1 }}</span>
+                                        <span class="rank-name">{{ dept.name }}</span>
+                                        <span class="rank-value">
+                                            {{ tab.id === 'mileage' ? dept.total_distance.toLocaleString() + ' 公里' : '' }}
+                                            {{ tab.id === 'fuel' ? dept.total_fuel.toFixed(2) + ' 升' : '' }}
+                                            {{ tab.id === 'violations' ? dept.violation_count + ' 次' : '' }}
+                                            {{ tab.id === 'maintenance' ? dept.total_maintenance_cost.toFixed(2) + ' 元' : '' }}
+                                        </span>
+                                    </li>
+                                </ul>
+                                <!-- (移除) "查看全部" 按钮 -->
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="department-list">
+                        <h2>部门数据总览</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>部门名称</th>
+                                    <th>车辆数</th>
+                                    <th>总行驶里程 (公里)</th>
+                                    <th>总油耗 (升)</th>
+                                    <th>总违章 (次)</th>
+                                    <th>总维保费用 (元)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="dept in departmentView.data" :key="dept.department_id">
+                                    <td>{{ dept.name }}</td>
+                                    <td>{{ dept.vehicle_count }}</td>
+                                    <td>{{ dept.total_distance.toLocaleString() }}</td>
+                                    <td>{{ dept.total_fuel.toFixed(2) }}</td>
+                                    <td>{{ dept.violation_count }}</td>
+                                    <td>{{ dept.total_maintenance_cost.toFixed(2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- 
+      引入外部 JavaScript 库和我们自己的脚本
+    -->
+
+    <!-- 从 CDN 引入 Vue.js 3 的核心库 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.prod.js"></script>
+    
+    <!-- (新增) 从 CDN 引入 Chart.js 用于绘制图表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- 引入我们自己的应用逻辑脚本 -->
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/app.js"></script>
+
+</body>
+</html>

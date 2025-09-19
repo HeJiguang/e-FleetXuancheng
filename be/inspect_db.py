@@ -2,13 +2,12 @@ import sqlite3
 import pandas as pd
 import os
 
-# --- Configuration ---
-# Build a path relative to this script file, not the current working directory
-SCRIPT_DIR = os.path.dirname(__file__)
-DB_FILE = os.path.join(SCRIPT_DIR, 'vehicle_data_optimized.db')
+# (修改) 更新数据库文件的相对路径
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(SCRIPT_DIR, '..', 'backend', 'data', 'vehicle_data_optimized.db')
 
 def inspect_database():
-    """Connects to the database and prints the first 5 rows of each table."""
+    """连接到 SQLite 数据库并打印每个表的前5行"""
     print(f"--- Inspecting Database: {DB_FILE} ---\n")
     conn = None  # Initialize conn to None
     try:
