@@ -1,17 +1,12 @@
-# 数据库
-be/vehicle_data_optimized.db
-*.db
+# IDE
+.idea/
+.vscode/
 
-# 临时文件和数据
-temp/
-
-# Python 缓存
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# 虚拟环境
 venv/
 .venv/
 env/
@@ -19,6 +14,19 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDE 配置
-.idea/
-.vscode/
+# 前端
+node_modules/
+dist/
+.env*
+!/.env.example
+
+# 数据库
+# 数据库文件应被忽略，例如: backend/data/*.db
+*.db
+
+# 临时文件和数据
+temp/
+
+# 日志
+log/
+*.log
