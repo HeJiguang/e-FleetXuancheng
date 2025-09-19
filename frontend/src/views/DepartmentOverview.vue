@@ -37,14 +37,8 @@ const departmentView = ref({
   error: null,
   data: [],
   kpis: {}, // (新增) 存储KPI数据
-  activeTab: 'mileage',
-  // (新增) 分页状态
-  pagination: {
-      page: 1,
-      per_page: 10,
-      total: 0,
-      total_pages: 1,
-  }
+  activeTab: 'mileage'
+  // (移除) 移除分页状态
 });
 
 // (新增) 统一管理筛选器状态
@@ -184,12 +178,10 @@ const isFilterValid = computed(() => {
 const fetchData = async () => {
   departmentView.value.isLoading = true;
   departmentView.value.error = null;
-  // (修改) 将筛选器和分页参数加入请求
+  // (修改) 移除请求中的分页参数
   const params = new URLSearchParams({
     start_month: filters.value.startMonth,
-    end_month: filters.value.endMonth,
-    page: departmentView.value.pagination.page,
-    per_page: departmentView.value.pagination.per_page,
+    end_month: filters.value.endMonth
   });
   try {
     const response = await fetch(`http://127.0.0.1:5000/api/department/summary?${params.toString()}`);
@@ -199,7 +191,7 @@ const fetchData = async () => {
     const responseData = await response.json();
     departmentView.value.data = responseData.departments;
     departmentView.value.kpis = responseData.kpis;
-    departmentView.value.pagination = responseData.pagination; // (新增) 更新分页数据
+    // (移除) 移除分页数据更新
 
   } catch (e) {
     departmentView.value.error = '无法加载部门数据，请检查后端服务。';
@@ -218,20 +210,14 @@ const changeDepartmentTab = (tabId) => {
 // (新增) 应用筛选器的方法
 const applyFilters = () => {
     if (isFilterValid.value) {
-        departmentView.value.pagination.page = 1; // (新增) 筛选时重置到第一页
+        // (移除) 移除重置分页的逻辑
         fetchData();
     } else {
         alert('请输入有效的起始和结束月份！');
     }
 };
 
-// (新增) 切换页面的方法
-const changePage = (page) => {
-    if (page > 0 && page <= departmentView.value.pagination.total_pages) {
-        departmentView.value.pagination.page = page;
-        fetchData();
-    }
-};
+// (移除) 移除切换页面的方法
 
 
 onMounted(fetchData);
@@ -345,14 +331,7 @@ onMounted(fetchData);
             </tr>
           </tbody>
         </table>
-        <!-- (新增) 分页控件 -->
-        <div class="pagination-controls" v-if="departmentView.pagination.total_pages > 1">
-            <button @click="changePage(1)" :disabled="departmentView.pagination.page === 1">首页</button>
-            <button @click="changePage(departmentView.pagination.page - 1)" :disabled="departmentView.pagination.page === 1">上一页</button>
-            <span>第 {{ departmentView.pagination.page }} 页 / 共 {{ departmentView.pagination.total_pages }} 页</span>
-            <button @click="changePage(departmentView.pagination.page + 1)" :disabled="departmentView.pagination.page >= departmentView.pagination.total_pages">下一页</button>
-            <button @click="changePage(departmentView.pagination.total_pages)" :disabled="departmentView.pagination.page >= departmentView.pagination.total_pages">末页</button>
-        </div>
+        <!-- (移除) 移除分页控件 -->
       </section>
     </div>
   </div>
@@ -405,30 +384,7 @@ onMounted(fetchData);
     text-decoration: underline;
 }
 
-/* (新增) 分页控件样式 */
-.pagination-controls {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-.pagination-controls button {
-    padding: 8px 15px;
-    border: 1px solid #ddd;
-    background-color: #fff;
-    cursor: pointer;
-    border-radius: 4px;
-}
-.pagination-controls button:disabled {
-    cursor: not-allowed;
-    background-color: #f5f5f5;
-    color: #aaa;
-}
-.pagination-controls span {
-    font-size: 14px;
-    color: #555;
-}
+/* (移除) 移除分页控件样式 */
 
 /* (新增) 页面筛选器样式 */
 .page-filters {

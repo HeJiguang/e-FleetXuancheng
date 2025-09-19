@@ -299,40 +299,39 @@ def get_department_summary():
     API 端点，用于获取部门总览页所需的数据。
     - 按部门汇总各项指标（里程、油耗、违章、维保）
     - 支持时间范围筛选
-    - (新增) 支持分页
+    - (修改) 不再支持分页，返回所有部门
     """
     try:
-        # (新增) 获取分页参数
-        page = request.args.get('page', default=1, type=int)
-        per_page = request.args.get('per_page', default=10, type=int)
-        offset = (page - 1) * per_page
+        # (移除) 移除分页参数
+        # page = request.args.get('page', default=1, type=int)
+        # per_page = request.args.get('per_page', default=10, type=int)
+        # offset = (page - 1) * per_page
         
         start_month = request.args.get('start_month')
         end_month = request.args.get('end_month')
         
         conn = get_db_connection()
 
-        # (新增) 获取部门总数用于分页
-        total_departments_count = conn.execute('SELECT COUNT(*) FROM departments').fetchone()[0]
+        # (移除) 移除部门总数查询
+        # total_departments_count = conn.execute('SELECT COUNT(*) FROM departments').fetchone()[0]
 
-        # 准备基础的部门信息，并统计每个部门的车辆数 (新增分页 LIMIT 和 OFFSET)
+        # (修改) 移除分页 LIMIT 和 OFFSET
         depts_query = """
             SELECT d.department_id, d.name, COUNT(v.vehicle_id) as vehicle_count
             FROM departments d
             LEFT JOIN vehicles v ON d.department_id = v.department_id
             GROUP BY d.department_id, d.name
             ORDER BY d.department_id
-            LIMIT :limit OFFSET :offset
         """
-        departments = {row['department_id']: dict(row) for row in conn.execute(depts_query, {'limit': per_page, 'offset': offset}).fetchall()}
+        departments = {row['department_id']: dict(row) for row in conn.execute(depts_query).fetchall()}
         
-        # 如果当前页没有部门，直接返回空结果
+        # 如果没有部门，直接返回空结果
         if not departments:
             conn.close()
             return jsonify({
                 'departments': [],
-                'kpis': {},
-                'pagination': { 'total': total_departments_count, 'page': page, 'per_page': per_page, 'total_pages': (total_departments_count + per_page - 1) // per_page }
+                'kpis': {}
+                # (移除) 移除分页信息
             })
 
 
@@ -416,7 +415,7 @@ def get_department_summary():
         # (修改) 基于对所有部门的查询来计算全局 KPI
         kpis = {
             'total_vehicles': total_vehicles_count,
-            'total_departments': total_departments_count,
+            'total_departments': len(departments), # (修改) 直接使用查询到的部门数量
             'total_distance': all_depts_fuel_mileage['total_distance'] or 0,
             'total_fuel': all_depts_fuel_mileage['total_fuel'] or 0,
             'violation_count': all_depts_violations['violation_count'] or 0,
@@ -426,19 +425,12 @@ def get_department_summary():
         # 将字典转换为列表，方便前端 v-for 渲染
         department_list = list(departments.values())
 
-        # (新增) 构造分页元数据
-        pagination = {
-            'total': total_departments_count,
-            'page': page,
-            'per_page': per_page,
-            'total_pages': (total_departments_count + per_page - 1) // per_page
-        }
-
-        # (修改) 包装响应数据，同时返回部门列表、KPI和分页信息
+        # (移除) 移除分页元数据
+        
+        # (修改) 包装响应数据，移除分页信息
         return jsonify({
             'departments': department_list,
-            'kpis': kpis,
-            'pagination': pagination
+            'kpis': kpis
         })
 
     except sqlite3.Error as e:
